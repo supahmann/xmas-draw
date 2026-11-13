@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>圣诞礼物抽签</title>
+<style>
+  /* One centered column, one card at a time. System fonts only, so it loads fast anywhere. */
+  :root {
+    --bg: #f3f5f1; --surface: #ffffff; --fg: #17241d; --muted: #5d6b62; --line: #d9e0d9;
+    --pine: #1f5a3d; --berry: #b3263a; --gold: #c8962e; --slip: #fbf7ec;
+    --font-display: "Songti SC", "STSong", "Noto Serif CJK SC", "Source Han Serif SC", serif;
+    --font-body: -apple-system, "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", system-ui, sans-serif;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0f1713; --surface: #18231d; --fg: #e9efe9; --muted: #9aaa9f; --line: #2b3a31;
+      --pine: #5fbf8c; --berry: #ef6b7d; --gold: #e2b65a; --slip: #222e27; color-scheme: dark; }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  [hidden] { display: none !important; }
+  body {
+    background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 16px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: calc(24px + env(safe-area-inset-top, 0px)) calc(40px + env(safe-area-inset-bottom, 0px));
+    -webkit-text-size-adjust: 100%;
+  }
+  main { max-width: 440px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+  header { display: flex; flex-direction: column; gap: 6px; }
+  .eyebrow { font-size: 12px; letter-spacing: .14em; color: var(--berry); font-weight: 700; }
+  h1 { font-family: var(--font-display); font-weight: 900; font-size: 34px; margin: 0; line-height: 1.15; }
+  .sub { color: var(--muted); margin: 0; font-size: 14px; line-height: 1.6; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px;
+    padding: 22px 20px; display: flex; flex-direction: column; gap: 14px; }
+  label { font-weight: 700; font-size: 15px; }
+  .row { display: flex; gap: 10px; }
+  input[type="text"] { flex: 1; min-width: 0; font: inherit; font-size: 18px; padding: 12px 14px;
+    border: 1.5px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--fg); }
+  input[type="text"]:focus { outline: none; border-color: var(--pine); }
+  button { font: inherit; font-weight: 700; font-size: 16px; border: 0; border-radius: 10px;
+    padding: 12px 18px; cursor: pointer; background: var(--pine); color: var(--surface);
+    -webkit-tap-highlight-color: transparent; }
+  button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+  button.big { width: 100%; padding: 16px; font-size: 18px; }
+  button.ghost { background: transparent; color: var(--muted); border: 1.5px solid var(--line); }
+  .msg { min-height: 1.4em; margin: 0; font-size: 14px; color: var(--berry); }
+  .couples { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .couple { display: flex; gap: 6px; align-items: center; justify-content: center;
+    padding: 8px 6px; border-radius: 10px; background: var(--bg); font-size: 15px; }
+  .couple i { color: var(--berry); font-style: normal; font-size: 12px; }
+  .center { text-align: center; align-items: center; }
+  .big-name { font-family: var(--font-display); font-weight: 900; font-size: 30px; margin: 0; }
+  .slip { width: 100%; max-width: 320px; aspect-ratio: 4 / 3; border-radius: 14px;
+    background: var(--slip); border: 2px dashed var(--gold);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+    animation: unfold .6s cubic-bezier(.2,.8,.2,1) both; }
+  .slip small { color: var(--muted); font-size: 14px; }
+  .slip strong { font-family: var(--font-display); font-weight: 900; font-size: 46px; color: var(--berry); line-height: 1.1; }
+  @keyframes unfold { from { transform: scaleY(.15) rotate(-3deg); opacity: .2; } to { transform: none; opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .slip { animation: none; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="eyebrow">CHRISTMAS 2026 · 12 人 · 6 对</div>
+    <h1>圣诞礼物抽签</h1>
+    <p class="sub">输入你的名字，看看你要给谁送礼物。不会抽到自己，也不会抽到自己的另一半。</p>
+  </header>
+
+  <section class="card" id="stepName">
+    <form id="nameForm" style="display:flex;flex-direction:column;gap:10px" autocomplete="off">
+      <label for="nameInput">输入你的名字</label>
+      <div class="row">
+        <input type="text" id="nameInput" placeholder="例如 zjc" autocapitalize="off" autocorrect="off" spellcheck="false">
+        <button type="submit">抽签</button>
+      </div>
+      <p class="msg" id="nameMsg" aria-live="polite"></p>
+    </form>
+    <label>名单</label>
+    <div class="couples" id="couples"></div>
+  </section>
+
+  <section class="card center" id="stepReady" hidden>
+    <p class="sub">确认一下，你是</p>
+    <p class="big-name" id="readyName"></p>
+    <p class="sub">打开后这部手机就只能看这个人的结果。确认旁边没人偷看再点。</p>
+    <button class="big" id="revealBtn">是我，打开我的签</button>
+    <button class="ghost" id="backBtn">不是，返回</button>
+  </section>
+
+  <section class="card center" id="stepReveal" hidden>
+    <div class="slip"><small>你要给</small><strong id="revealTarget"></strong><small>准备圣诞礼物</small></div>
+    <p class="sub">忘了可以再输入自己的名字查看。</p>
+    <button class="big ghost" id="doneBtn">盖住结果</button>
+  </section>
+</main>
+
+<script>
+(function () {
+  var COUPLES = [["zjc", "llq"], ["wt", "cyn"], ["hjj", "szf"], ["cxh", "cxy"], ["wbx", "rachel"], ["fhc", "lyt"]];
+  var BLOB = "lmz8i8GClc0YitP2", KEY = "pRb3T5my6G/xhEyj", DRAW_ID = "b2500a";
+  var LOCK = "xmas-draw-" + DRAW_ID;
+
+  var people = [], index = {};
+  COUPLES.forEach(function (c) { people.push(c[0], c[1]); });
+  people.forEach(function (p, i) { index[p] = i; });
+
+  function bytes(b64) { var s = atob(b64), a = []; for (var i = 0; i < s.length; i++) a.push(s.charCodeAt(i)); return a; }
+  function receiverOf(name) {
+    var i = index[name], b = bytes(BLOB)[i] ^ bytes(KEY)[i];
+    return people[(((b - 11) % 256 + 256) * 173) % 256];   // 173 = 37^-1 mod 256
+  }
+  function getLock() { try { return localStorage.getItem(LOCK); } catch (e) { return null; } }
+  function setLock(n) { try { localStorage.setItem(LOCK, n); } catch (e) {} }
+
+  var $ = function (id) { return document.getElementById(id); };
+  function show(id) { ["stepName", "stepReady", "stepReveal"].forEach(function (s) { $(s).hidden = s !== id; }); window.scrollTo(0, 0); }
+
+  COUPLES.forEach(function (c) {
+    var d = document.createElement("div"); d.className = "couple";
+    var a = document.createElement("span"); a.textContent = c[0];
+    var h = document.createElement("i"); h.textContent = "♥";
+    var b = document.createElement("span"); b.textContent = c[1];
+    d.appendChild(a); d.appendChild(h); d.appendChild(b); $("couples").appendChild(d);
+  });
+
+  var current = null;
+  $("nameForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var name = $("nameInput").value.trim().toLowerCase(), msg = $("nameMsg");
+    if (!name) { msg.textContent = "请先输入名字。"; return; }
+    if (!(name in index)) { msg.textContent = "名单里没有“" + name + "”，检查一下拼写。"; return; }
+    var lock = getLock();
+    if (lock && lock !== name) { msg.textContent = "这部手机已经用 " + lock + " 抽过了，请用自己的手机抽。"; return; }
+    msg.textContent = ""; current = name;
+    if (lock === name) { $("revealTarget").textContent = receiverOf(name); show("stepReveal"); return; }
+    $("readyName").textContent = name; show("stepReady");
+  });
+  $("backBtn").addEventListener("click", function () { current = null; show("stepName"); });
+  $("revealBtn").addEventListener("click", function () {
+    if (!current) return show("stepName");
+    setLock(current);
+    $("revealTarget").textContent = receiverOf(current); show("stepReveal");
+  });
+  $("doneBtn").addEventListener("click", function () {
+    current = null; $("revealTarget").textContent = ""; $("nameInput").value = ""; show("stepName");
+  });
+
+  window.__check = function () { var m = {}; people.forEach(function (p) { m[p] = receiverOf(p); }); return m; };
+})();
+</script>
+</body>
+</html>
